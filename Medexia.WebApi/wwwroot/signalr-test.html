@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>SignalR Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+</head>
+<body>
+    <h2>SignalR Queue Test</h2>
+    <div id="log" style="white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script>
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjVhYjBhZDc1LTAzZTUtNGI2YS05MWIzLTdiNjkxMDE3NzQyZCIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJUb3RvIiwianRpIjoiN2IwZmE1ODAtYzVlZS00MDkxLWE3YTItYzNhNDMyY2NjYzE2IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiRG9jdG9yIiwiZXhwIjoxNzg2OTgzNDI0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjEyMjkwIiwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo0MjAwIn0.kr_c2cgFiq8uB35mnpGaEpC1y5QXSZVOl7hxlETIQFY";
+        const timeTableId = 1; // غيّرها للـ TimeTable اللي عايز تتيستيه
+
+        const log = (msg) => {
+            document.getElementById("log").innerText += msg + "\n";
+            console.log(msg);
+        };
+
+        const connection = new signalR.HubConnectionBuilder()
+    .withUrl("https://localhost:7032/hubs/queue", {  // ← اتصحح هنا
+        accessTokenFactory: () => token
+    })
+    .withAutomaticReconnect()
+    .configureLogging(signalR.LogLevel.Information)
+    .build();
+        // استمع لحدث "NextPatientCalled"
+        connection.on("NextPatientCalled", (data) => {
+            log("✅ NextPatientCalled Received: " + JSON.stringify(data));
+        });
+
+        connection.onreconnecting(() => log("⚠️ Reconnecting..."));
+        connection.onreconnected(() => log("✅ Reconnected"));
+        connection.onclose((err) => log("❌ Connection closed: " + err));
+
+        async function start() {
+            try {
+                await connection.start();
+                log("✅ Connected to Hub");
+
+                await connection.invoke("JoinQueueGroup", timeTableId);
+                log(`✅ Joined Group for TimeTableId: ${timeTableId}`);
+            } catch (err) {
+                log("❌ Connection failed: " + err);
+            }
+        }
+
+        start();
+    </script>
+</body>
+</html>
